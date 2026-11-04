@@ -1,36 +1,32 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>每月信用卡與固定開銷管理系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- React & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <!-- Babel Compiler for JSX -->
+  <!-- Babel CDN for JSX inside browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    body { -webkit-tap-highlight-color: transparent; }
-  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen">
-
+<body class="bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // --- 預設範例資料 ---
+    // --- 預設資料 (Sample Data) ---
     const DEFAULT_CARDS = [
-      { id: 'c1', name: '國泰世華 CUBE 卡', closingDay: 15, dueDay: 5, color: 'from-emerald-600 to-teal-800' },
-      { id: 'c2', name: '玉山 Unicard', closingDay: 25, dueDay: 12, color: 'from-blue-600 to-indigo-800' },
-      { id: 'c3', name: '富邦 J 卡', closingDay: 1, dueDay: 19, color: 'from-purple-600 to-pink-700' },
+      { id: 'c1', name: '國泰世華 CUBE 卡', closingDay: 15, dueDay: 5, color: 'from-emerald-500 to-teal-700' },
+      { id: 'c2', name: '台新 FlyGo 卡', closingDay: 25, dueDay: 12, color: 'from-blue-500 to-indigo-700' },
+      { id: 'c3', name: '富邦 J 卡', closingDay: 1, dueDay: 19, color: 'from-purple-500 to-pink-600' }
     ];
 
     const DEFAULT_TRANSACTIONS = [
-      { id: 't1', title: '全家超商購物', amount: 245, category: '餐飲美饌', cardId: 'c1', txDate: '2026-11-02', billingCycle: '2026-11', isInstallment: false },
+      { id: 't1', title: '全家超商購物', amount: 245, category: '日常購物', cardId: 'c1', txDate: '2026-11-02', billingCycle: '2026-11', isInstallment: false },
       { id: 't2', title: 'UNIQLO 服飾 (店家延遲請款範例)', amount: 1990, category: '日常購物', cardId: 'c2', txDate: '2026-10-28', billingCycle: '2026-12', isInstallment: false },
       { id: 't3', title: '加油站加油', amount: 1200, category: '交通出行', cardId: 'c1', txDate: '2026-11-08', billingCycle: '2026-11', isInstallment: false },
       {
@@ -63,109 +59,120 @@
 
     const DEFAULT_FIXED_ITEMS = [
       { id: 'f1', title: '孝親費', amount: 15000, category: '孝親費', type: 'expense', payDay: 5 },
-      { id: 'f2', title: '房屋租金', amount: 18000, category: '房租房貸', type: 'expense', payDay: 1 },
-      { id: 'f3', title: 'ChatGPT Plus / AI 訂閱', amount: 650, category: '串流/AI訂閱', type: 'subscription', payDay: 15 },
-      { id: 'f4', title: 'Spotify 音樂串流家庭方案', amount: 268, category: '串流/AI訂閱', type: 'subscription', payDay: 20 },
-      { id: 'f5', title: '健身房月會費', amount: 1288, category: '健身運動', type: 'subscription', payDay: 10 },
-      { id: 'f6', title: '定期定額台積電 (2330)', amount: 10000, category: '股票投資', type: 'investment', payDay: 16 },
-      { id: 'f7', title: '0050 ETF 定期定額', amount: 5000, category: 'ETF投資', type: 'investment', payDay: 6 }
+      { id: 'f2', title: '房屋套房租金', amount: 18000, category: '房租房貸', type: 'expense', payDay: 1 },
+      { id: 'f3', title: 'ChatGPT Plus (AI訂閱)', amount: 650, category: '信用卡訂閱', type: 'subscription', payDay: 15 },
+      { id: 'f4', title: 'Spotify 家族方案', amount: 268, category: '信用卡訂閱', type: 'subscription', payDay: 20 },
+      { id: 'f5', title: '健身房每月會費', amount: 1288, category: '信用卡訂閱', type: 'subscription', payDay: 5 },
+      { id: 'f6', title: '台積電 (2330) 定期定額', amount: 10000, category: '股票投資', type: 'investment', payDay: 16 }
     ];
 
     const calculateDefaultBillingCycle = (txDateStr, closingDay = 15) => {
       if (!txDateStr) return '';
       const date = new Date(txDateStr);
-      let year = date.getFullYear();
-      let month = date.getMonth();
-      const day = date.getDate();
-      if (day > closingDay) {
-        month += 1;
-        if (month > 11) { month = 0; year += 1; }
+      let targetYear = date.getFullYear();
+      let targetMonth = date.getMonth();
+      if (date.getDate() > closingDay) {
+        targetMonth += 1;
+        if (targetMonth > 11) {
+          targetMonth = 0;
+          targetYear += 1;
+        }
       }
-      return `${year}-${String(month + 1).padStart(2, '0')}`;
+      return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
     };
 
     function App() {
       const [selectedMonth, setSelectedMonth] = useState('2026-11');
-      const [viewMode, setViewMode] = useState('billing'); // 'billing' | 'transaction'
+      const [viewMode, setViewMode] = useState('billing');
       const [activeTab, setActiveTab] = useState('dashboard');
 
-      // 密碼鎖 State
-      const [pinCode, setPinCode] = useState(() => localStorage.getItem('v5_pin') || '');
-      const [isLocked, setIsLocked] = useState(() => !!localStorage.getItem('v5_pin'));
+      // PIN 碼與鎖定狀態
+      const [pinCode, setPinCode] = useState(() => localStorage.getItem('cc_tracker_pin') || '');
+      const [isLocked, setIsLocked] = useState(() => !!localStorage.getItem('cc_tracker_pin'));
       const [inputPin, setInputPin] = useState('');
       const [pinError, setPinError] = useState('');
       const [isSettingPin, setIsSettingPin] = useState(false);
       const [newPin, setNewPin] = useState('');
 
-      // LocalStorage Data
-      const [cards, setCards] = useState(() => {
-        const s = localStorage.getItem('v5_cards');
-        return s ? JSON.parse(s) : DEFAULT_CARDS;
-      });
-      const [transactions, setTransactions] = useState(() => {
-        const s = localStorage.getItem('v5_txs');
-        return s ? JSON.parse(s) : DEFAULT_TRANSACTIONS;
-      });
-      const [fixedItems, setFixedItems] = useState(() => {
-        const s = localStorage.getItem('v5_fixed');
-        return s ? JSON.parse(s) : DEFAULT_FIXED_ITEMS;
-      });
-      const [cardPayments, setCardPayments] = useState(() => {
-        const s = localStorage.getItem('v5_card_payments');
-        return s ? JSON.parse(s) : { 'c1_2026-11': true };
-      });
-      const [fixedPayments, setFixedPayments] = useState(() => {
-        const s = localStorage.getItem('v5_fixed_payments');
-        return s ? JSON.parse(s) : { 'f1_2026-11': true, 'f3_2026-11': true };
-      });
+      // 資料 Persistent State
+      const [cards, setCards] = useState(() => JSON.parse(localStorage.getItem('cc_cards_v3') || JSON.stringify(DEFAULT_CARDS)));
+      const [transactions, setTransactions] = useState(() => JSON.parse(localStorage.getItem('cc_txs_v3') || JSON.stringify(DEFAULT_TRANSACTIONS)));
+      const [fixedItems, setFixedItems] = useState(() => JSON.parse(localStorage.getItem('cc_fixed_v3') || JSON.stringify(DEFAULT_FIXED_ITEMS)));
+      const [cardPayments, setCardPayments] = useState(() => JSON.parse(localStorage.getItem('cc_card_pay_v3') || '{}'));
+      const [fixedPayments, setFixedPayments] = useState(() => JSON.parse(localStorage.getItem('cc_fixed_pay_v3') || '{}'));
 
       // Modals
       const [isAddCardOpen, setIsAddCardOpen] = useState(false);
       const [editingCard, setEditingCard] = useState(null);
+      const [newCard, setNewCard] = useState({ name: '', closingDay: 15, dueDay: 5, color: 'from-indigo-600 to-blue-700' });
+
       const [isAddTxOpen, setIsAddTxOpen] = useState(false);
-      const [isAddFixedOpen, setIsAddFixedOpen] = useState(false);
-
+      const [editingTx, setEditingTx] = useState(null);
       const todayStr = new Date().toISOString().split('T')[0];
-      const [newCard, setNewCard] = useState({ name: '', closingDay: 15, dueDay: 5, color: 'from-indigo-600 to-blue-800' });
-      const [newTx, setNewTx] = useState({ title: '', amount: '', category: '日常購物', cardId: cards[0]?.id || '', txDate: todayStr, billingCycle: calculateDefaultBillingCycle(todayStr, 15), isInstallment: false, totalTerms: 3 });
-      const [newFixed, setNewFixed] = useState({ title: '', amount: '', category: '孝親費', type: 'expense', payDay: 5 });
+      const [newTx, setNewTx] = useState({
+        title: '', amount: '', category: '日常購物', cardId: cards[0]?.id || '',
+        txDate: todayStr, billingCycle: calculateDefaultBillingCycle(todayStr, 15),
+        isInstallment: false, totalTerms: 3
+      });
 
-      // Save to localStorage
-      useEffect(() => { localStorage.setItem('v5_cards', JSON.stringify(cards)); }, [cards]);
-      useEffect(() => { localStorage.setItem('v5_txs', JSON.stringify(transactions)); }, [transactions]);
-      useEffect(() => { localStorage.setItem('v5_fixed', JSON.stringify(fixedItems)); }, [fixedItems]);
-      useEffect(() => { localStorage.setItem('v5_card_payments', JSON.stringify(cardPayments)); }, [cardPayments]);
-      useEffect(() => { localStorage.setItem('v5_fixed_payments', JSON.stringify(fixedPayments)); }, [fixedPayments]);
+      const [isAddFixedOpen, setIsAddFixedOpen] = useState(false);
+      const [newFixed, setNewFixed] = useState({ title: '', amount: '', category: '信用卡訂閱', type: 'subscription', payDay: 5 });
 
-      // Computed Data
+      // 自動同步 LocalStorage
+      useEffect(() => { localStorage.setItem('cc_cards_v3', JSON.stringify(cards)); }, [cards]);
+      useEffect(() => { localStorage.setItem('cc_txs_v3', JSON.stringify(transactions)); }, [transactions]);
+      useEffect(() => { localStorage.setItem('cc_fixed_v3', JSON.stringify(fixedItems)); }, [fixedItems]);
+      useEffect(() => { localStorage.setItem('cc_card_pay_v3', JSON.stringify(cardPayments)); }, [cardPayments]);
+      useEffect(() => { localStorage.setItem('cc_fixed_pay_v3', JSON.stringify(fixedPayments)); }, [fixedPayments]);
+
+      // JSON 備份與還原功能
+      const handleExportData = () => {
+        const exportObj = { cards, transactions, fixedItems, cardPayments, fixedPayments, pinCode };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `MyFinanceBackup_${selectedMonth}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      };
+
+      const handleImportData = (e) => {
+        const fileReader = new FileReader();
+        if (e.target.files && e.target.files[0]) {
+          fileReader.readAsText(e.target.files[0], "UTF-8");
+          fileReader.onload = (event) => {
+            try {
+              const parsed = JSON.parse(event.target.result);
+              if (parsed.cards && parsed.transactions) {
+                setCards(parsed.cards);
+                setTransactions(parsed.transactions);
+                setFixedItems(parsed.fixedItems || []);
+                setCardPayments(parsed.cardPayments || {});
+                setFixedPayments(parsed.fixedPayments || {});
+                if (parsed.pinCode !== undefined) {
+                  setPinCode(parsed.pinCode);
+                  localStorage.setItem('cc_tracker_pin', parsed.pinCode);
+                }
+                alert('🎉 備份資料成功還原！');
+              } else {
+                alert('⚠️ 備份檔案格式不正確！');
+              }
+            } catch (err) {
+              alert('解析備份檔案失敗！');
+            }
+          };
+        }
+      };
+
+      // 計算邏輯
       const currentMonthTransactions = useMemo(() => {
         return transactions.filter(t => viewMode === 'billing' ? t.billingCycle === selectedMonth : t.txDate.startsWith(selectedMonth));
       }, [transactions, selectedMonth, viewMode]);
 
-      const installmentGroups = useMemo(() => {
-        const map = {};
-        transactions.forEach(t => {
-          if (t.isInstallment && t.groupId) {
-            if (!map[t.groupId]) {
-              map[t.groupId] = {
-                groupId: t.groupId,
-                title: t.title.replace(/\s\(\d+\/\d+期\)/, ''),
-                totalAmount: t.totalAmount || (t.amount * (t.installmentInfo?.totalTerms || 1)),
-                cardId: t.cardId,
-                category: t.category,
-                totalTerms: t.installmentInfo?.totalTerms || 1,
-                terms: []
-              };
-            }
-            map[t.groupId].terms.push(t);
-          }
-        });
-        return Object.values(map);
-      }, [transactions]);
-
       const cardTotals = useMemo(() => {
         const map = {};
-        cards.forEach(c => map[c.id] = 0);
+        cards.forEach(c => { map[c.id] = 0; });
         currentMonthTransactions.forEach(t => {
           if (map[t.cardId] !== undefined) map[t.cardId] += Number(t.amount);
         });
@@ -176,9 +183,12 @@
       const totalFixedExpenses = useMemo(() => fixedItems.filter(i => i.type === 'expense').reduce((s, i) => s + Number(i.amount), 0), [fixedItems]);
       const totalSubscriptions = useMemo(() => fixedItems.filter(i => i.type === 'subscription').reduce((s, i) => s + Number(i.amount), 0), [fixedItems]);
       const totalInvestments = useMemo(() => fixedItems.filter(i => i.type === 'investment').reduce((s, i) => s + Number(i.amount), 0), [fixedItems]);
-      const totalOutflow = totalCreditCardExpense + totalFixedExpenses + totalSubscriptions + totalInvestments;
+      const totalMonthlyOutflow = useMemo(() => totalCreditCardExpense + totalFixedExpenses + totalSubscriptions + totalInvestments, [totalCreditCardExpense, totalFixedExpenses, totalSubscriptions, totalInvestments]);
 
-      // Handlers
+      const pendingCardCount = useMemo(() => cards.filter(c => !cardPayments[`${c.id}_${selectedMonth}`]).length, [cards, cardPayments, selectedMonth]);
+      const pendingFixedCount = useMemo(() => fixedItems.filter(f => !fixedPayments[`${f.id}_${selectedMonth}`]).length, [fixedItems, fixedPayments, selectedMonth]);
+
+      // 切換繳費狀態
       const toggleCardPayment = (cardId) => {
         const key = `${cardId}_${selectedMonth}`;
         setCardPayments(prev => ({ ...prev, [key]: !prev[key] }));
@@ -189,122 +199,129 @@
         setFixedPayments(prev => ({ ...prev, [key]: !prev[key] }));
       };
 
-      const handleAddCard = (e) => {
+      // 信用卡 新增/編輯
+      const handleOpenAddCard = () => {
+        setEditingCard(null);
+        setNewCard({ name: '', closingDay: 15, dueDay: 5, color: 'from-indigo-600 to-blue-700' });
+        setIsAddCardOpen(true);
+      };
+
+      const handleOpenEditCard = (card) => {
+        setEditingCard(card);
+        setNewCard({ ...card });
+        setIsAddCardOpen(true);
+      };
+
+      const handleSaveCard = (e) => {
         e.preventDefault();
         if (!newCard.name) return;
         if (editingCard) {
-          setCards(cards.map(c => c.id === editingCard.id ? { ...c, name: newCard.name, closingDay: Number(newCard.closingDay), dueDay: Number(newCard.dueDay), color: newCard.color } : c));
-          setEditingCard(null);
+          setCards(cards.map(c => c.id === editingCard.id ? { ...newCard, closingDay: Number(newCard.closingDay), dueDay: Number(newCard.dueDay) } : c));
         } else {
           setCards([...cards, { ...newCard, id: 'c_' + Date.now(), closingDay: Number(newCard.closingDay), dueDay: Number(newCard.dueDay) }]);
         }
         setIsAddCardOpen(false);
       };
 
-      const handleDeleteCard = (cardId, cardName) => {
-        if (cards.length <= 1) return alert('請至少保留一張信用卡！');
-        if (confirm(`確定刪除「${cardName}」？`)) {
-          setCards(cards.filter(c => c.id !== cardId));
-        }
+      // 刷卡明細 新增/編輯
+      const handleOpenAddTx = () => {
+        setEditingTx(null);
+        setNewTx({
+          title: '', amount: '', category: '日常購物', cardId: cards[0]?.id || '',
+          txDate: todayStr, billingCycle: calculateDefaultBillingCycle(todayStr, 15),
+          isInstallment: false, totalTerms: 3
+        });
+        setIsAddTxOpen(true);
       };
 
-      const handleAddTx = (e) => {
+      const handleOpenEditTx = (tx) => {
+        setEditingTx(tx);
+        setNewTx({ ...tx, amount: String(tx.amount) });
+        setIsAddTxOpen(true);
+      };
+
+      const handleSaveTx = (e) => {
         e.preventDefault();
         if (!newTx.title || !newTx.amount) return;
         const totalAmt = Number(newTx.amount);
 
-        if (newTx.isInstallment && newTx.totalTerms > 1) {
-          const terms = Number(newTx.totalTerms);
-          const monthlyAmt = Math.round(totalAmt / terms);
-          const groupId = 'inst_' + Date.now();
-          const items = [];
-          const [sy, sm] = newTx.billingCycle.split('-').map(Number);
-
-          for (let i = 0; i < terms; i++) {
-            let m = sm + i, y = sy;
-            while (m > 12) { m -= 12; y += 1; }
-            items.push({
-              id: `t_${groupId}_${i+1}`,
-              groupId,
-              title: `${newTx.title} (${i+1}/${terms}期)`,
-              amount: monthlyAmt,
-              totalAmount: totalAmt,
-              category: newTx.category,
-              cardId: newTx.cardId,
-              txDate: newTx.txDate,
-              billingCycle: `${y}-${String(m).padStart(2,'0')}`,
-              isInstallment: true,
-              installmentInfo: { currentTerm: i + 1, totalTerms: terms }
-            });
-          }
-          setTransactions([...items, ...transactions]);
+        if (editingTx) {
+          setTransactions(transactions.map(t => t.id === editingTx.id ? {
+            ...t, title: newTx.title, amount: totalAmt, category: newTx.category,
+            cardId: newTx.cardId, txDate: newTx.txDate, billingCycle: newTx.billingCycle
+          } : t));
         } else {
-          setTransactions([{
-            id: 't_' + Date.now(),
-            title: newTx.title,
-            amount: totalAmt,
-            category: newTx.category,
-            cardId: newTx.cardId,
-            txDate: newTx.txDate,
-            billingCycle: newTx.billingCycle,
-            isInstallment: false
-          }, ...transactions]);
+          if (newTx.isInstallment && newTx.totalTerms > 1) {
+            const termsCount = Number(newTx.totalTerms);
+            const monthlyAmt = Math.round(totalAmt / termsCount);
+            const groupId = 'inst_' + Date.now();
+            const newItems = [];
+            const [startYear, startMonth] = newTx.billingCycle.split('-').map(Number);
+
+            for (let i = 0; i < termsCount; i++) {
+              let curMonth = startMonth + i;
+              let curYear = startYear;
+              while (curMonth > 12) { curMonth -= 12; curYear += 1; }
+              const cycleStr = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+              newItems.push({
+                id: `t_${groupId}_${i + 1}`, groupId,
+                title: `${newTx.title} (${i + 1}/${termsCount}期)`,
+                amount: monthlyAmt, totalAmount: totalAmt, category: newTx.category,
+                cardId: newTx.cardId, txDate: newTx.txDate, billingCycle: cycleStr,
+                isInstallment: true, installmentInfo: { currentTerm: i + 1, totalTerms: termsCount }
+              });
+            }
+            setTransactions([...newItems, ...transactions]);
+          } else {
+            setTransactions([{
+              id: 't_' + Date.now(), title: newTx.title, amount: totalAmt,
+              category: newTx.category, cardId: newTx.cardId, txDate: newTx.txDate,
+              billingCycle: newTx.billingCycle, isInstallment: false
+            }, ...transactions]);
+          }
         }
         setIsAddTxOpen(false);
       };
 
-      const exportBackup = () => {
-        const data = { cards, transactions, fixedItems, cardPayments, fixedPayments };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `finance_backup_${selectedMonth}.json`;
-        a.click();
+      // 固定開銷 新增
+      const handleSaveFixed = (e) => {
+        e.preventDefault();
+        if (!newFixed.title || !newFixed.amount) return;
+        setFixedItems([...fixedItems, {
+          ...newFixed, id: 'f_' + Date.now(), amount: Number(newFixed.amount), payDay: Number(newFixed.payDay)
+        }]);
+        setIsAddFixedOpen(false);
       };
 
-      const importBackup = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = JSON.parse(event.target.result);
-            if (data.cards) setCards(data.cards);
-            if (data.transactions) setTransactions(data.transactions);
-            if (data.fixedItems) setFixedItems(data.fixedItems);
-            if (data.cardPayments) setCardPayments(data.cardPayments);
-            if (data.fixedPayments) setFixedPayments(data.fixedPayments);
-            alert('備份資料導入成功！');
-          } catch(err) { alert('檔案格式不對！'); }
-        };
-        reader.readAsText(file);
-      };
-
+      // 解鎖畫面
       const handleUnlock = (e) => {
         e.preventDefault();
-        if (inputPin === pinCode) {
-          setIsLocked(false);
-          setInputPin('');
-          setPinError('');
-        } else {
-          setPinError('密碼錯誤，請重新輸入');
-        }
+        if (inputPin === pinCode) { setIsLocked(false); setInputPin(''); setPinError(''); }
+        else { setPinError('密碼錯誤，請重新輸入'); }
       };
 
       if (isLocked) {
         return (
           <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl space-y-6">
-              <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-lg">🛡️</div>
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
+              <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto">
+                <span className="text-3xl">🛡️</span>
+              </div>
               <div>
                 <h2 className="text-xl font-bold text-white">私人記帳解鎖</h2>
-                <p className="text-xs text-slate-400 mt-1">請輸入 4 位數 PIN 碼以解鎖畫面</p>
+                <p className="text-xs text-slate-400 mt-1">請輸入 PIN 碼存取財務資料</p>
               </div>
               <form onSubmit={handleUnlock} className="space-y-4">
-                <input type="password" maxLength={8} placeholder="輸入 PIN 碼" value={inputPin} onChange={e => setInputPin(e.target.value)} className="w-full text-center text-2xl tracking-widest bg-slate-800 border border-slate-700 rounded-2xl py-3 text-white focus:outline-none focus:border-indigo-500" autoFocus />
-                {pinError && <p className="text-xs text-rose-400 font-bold">{pinError}</p>}
-                <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm shadow-lg">解鎖畫面</button>
+                <input
+                  type="password" maxLength={8} placeholder="輸入 PIN 碼"
+                  value={inputPin} onChange={e => setInputPin(e.target.value)}
+                  className="w-full text-center text-2xl tracking-[0.5em] bg-slate-800 border border-slate-700 rounded-2xl py-3 text-white focus:outline-none focus:border-indigo-500"
+                  autoFocus
+                />
+                {pinError && <p className="text-xs text-rose-400">{pinError}</p>}
+                <button type="submit" className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-500 transition">
+                  解鎖畫面
+                </button>
               </form>
             </div>
           </div>
@@ -312,95 +329,131 @@
       }
 
       return (
-        <div className="min-h-screen flex flex-col pb-12">
+        <div className="min-h-screen flex flex-col">
           {/* Header */}
-          <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-lg">
-            <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white shadow-md">💳</div>
-                <h1 className="font-black text-base text-white">信用卡與每月開銷管家</h1>
+          <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-lg">
+                  💳
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-white">每月信用卡與開銷管家</h1>
+                  <p className="text-[11px] text-slate-400">iPhone Pro Max 最佳化版</p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <div className="bg-slate-800 border border-slate-700 p-1 rounded-xl flex">
-                  <button onClick={() => setViewMode('billing')} className={`px-2.5 py-1 rounded-lg transition ${viewMode === 'billing' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}>帳單月</button>
-                  <button onClick={() => setViewMode('transaction')} className={`px-2.5 py-1 rounded-lg transition ${viewMode === 'transaction' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}>消費月</button>
+              <div className="flex items-center gap-2">
+                <div className="bg-slate-800 border border-slate-700 p-1 rounded-xl text-xs flex">
+                  <button onClick={() => setViewMode('billing')} className={`px-2.5 py-1 rounded-lg transition ${viewMode === 'billing' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}>
+                    帳單月
+                  </button>
+                  <button onClick={() => setViewMode('transaction')} className={`px-2.5 py-1 rounded-lg transition ${viewMode === 'transaction' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}>
+                    消費月
+                  </button>
                 </div>
 
-                <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="bg-slate-800 border border-slate-700 text-indigo-300 font-bold px-2 py-1.5 rounded-xl text-xs focus:outline-none" />
+                <input
+                  type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
+                />
 
-                <button onClick={() => setIsSettingPin(true)} title="密碼鎖設定" className="p-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700">🔒</button>
-                <button onClick={exportBackup} title="匯出備份JSON" className="p-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700">📥</button>
-                <label title="匯入備份JSON" className="p-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 cursor-pointer">
+                {/* 匯出備份 */}
+                <button onClick={handleExportData} className="p-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs hover:bg-slate-700" title="匯出 iPhone JSON 備份檔">
+                  📥
+                </button>
+                {/* 匯入備份 */}
+                <label className="p-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs hover:bg-slate-700 cursor-pointer" title="匯入備份檔">
                   📤
-                  <input type="file" accept=".json" onChange={importBackup} className="hidden" />
+                  <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                 </label>
+                {/* 設定 PIN 碼 */}
+                <button onClick={() => setIsSettingPin(true)} className="p-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs hover:bg-slate-700" title="安全設定">
+                  🔒
+                </button>
               </div>
             </div>
           </header>
 
-          {/* Main Content */}
-          <main className="max-w-6xl w-full mx-auto px-4 py-6 flex-1 space-y-6">
-            {/* Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-1 border-b border-slate-800">
-              {[
-                { id: 'dashboard', name: '📊 當月總覽' },
-                { id: 'cards', name: '💳 信用卡帳單' },
-                { id: 'transactions', name: '📝 刷卡明細' },
-                { id: 'installments', name: '⚡ 分期付款進度' },
-                { id: 'fixed', name: '🏠 固定開銷/訂閱/投資' },
-              ].map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${activeTab === t.id ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 border border-slate-800'}`}>
-                  {t.name}
+          {/* Navigation Bar */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-5 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 overflow-x-auto gap-2">
+              <div className="flex items-center gap-1.5">
+                {[
+                  { id: 'dashboard', label: '📊 總覽 Dashboard' },
+                  { id: 'cards', label: '💳 信用卡帳單' },
+                  { id: 'transactions', label: '📝 刷卡明細' },
+                  { id: 'installments', label: '⏳ 分期付款進度' },
+                  { id: 'fixed', label: '🏠 固定開銷與訂閱' }
+                ].map(tab => (
+                  <button
+                    key={tab.id} onClick={() => setActiveTab(tab.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                      activeTab === tab.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button onClick={handleOpenAddTx} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow transition">
+                  + 記一筆刷卡
                 </button>
-              ))}
+                <button onClick={() => setIsAddFixedOpen(true)} className="px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-700 transition">
+                  + 新增固定開銷
+                </button>
+              </div>
             </div>
 
             {/* Tab 1: Dashboard */}
             {activeTab === 'dashboard' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl col-span-2 md:col-span-1">
-                    <div className="text-[11px] text-slate-400 font-bold">當月總支出 (全包)</div>
-                    <div className="text-xl font-black text-white mt-1">${totalOutflow.toLocaleString()}</div>
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4">
+                    <span className="text-xs text-slate-400">當月總支出 (全包)</span>
+                    <div className="text-2xl font-black text-white mt-2">${totalMonthlyOutflow.toLocaleString()}</div>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-                    <div className="text-[11px] text-emerald-400 font-bold">信用卡應繳</div>
-                    <div className="text-xl font-black text-emerald-400 mt-1">${totalCreditCardExpense.toLocaleString()}</div>
+                  <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4">
+                    <span className="text-xs text-slate-400">信用卡總應繳</span>
+                    <div className="text-2xl font-black text-emerald-400 mt-2">${totalCreditCardExpense.toLocaleString()}</div>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-                    <div className="text-[11px] text-rose-400 font-bold">固定開銷/孝親</div>
-                    <div className="text-xl font-black text-rose-400 mt-1">${totalFixedExpenses.toLocaleString()}</div>
+                  <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4">
+                    <span className="text-xs text-slate-400">固定開銷 / 孝親費</span>
+                    <div className="text-2xl font-black text-rose-400 mt-2">${totalFixedExpenses.toLocaleString()}</div>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-                    <div className="text-[11px] text-purple-400 font-bold">定期訂閱/AI</div>
-                    <div className="text-xl font-black text-purple-400 mt-1">${totalSubscriptions.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-                    <div className="text-[11px] text-cyan-400 font-bold">股票/ETF投資</div>
-                    <div className="text-xl font-black text-cyan-400 mt-1">${totalInvestments.toLocaleString()}</div>
+                  <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4">
+                    <span className="text-xs text-slate-400">信用卡訂閱 (AI/影音)</span>
+                    <div className="text-2xl font-black text-purple-400 mt-2">${totalSubscriptions.toLocaleString()}</div>
                   </div>
                 </div>
 
-                {/* Checklist */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <h3 className="text-sm font-bold text-white">💳 信用卡繳費狀態 ({selectedMonth})</h3>
+                {/* 待辦事項清單 */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  <div className="bg-slate-800/40 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-white text-sm">💳 信用卡當期繳費進度</h3>
+                      <span className="text-xs text-indigo-400">未繳 {pendingCardCount} / 共 {cards.length} 張</span>
+                    </div>
                     <div className="space-y-2">
                       {cards.map(card => {
-                        const amt = cardTotals[card.id] || 0;
+                        const amount = cardTotals[card.id] || 0;
                         const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
                         return (
-                          <div key={card.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-                            <div>
-                              <div className="text-xs font-bold text-slate-200">{card.name}</div>
-                              <div className="text-[10px] text-slate-400">每月{card.dueDay}日繳款</div>
-                            </div>
-                            <div className="text-right flex items-center gap-3">
-                              <span className="text-xs font-bold text-white">${amt.toLocaleString()}</span>
-                              <button onClick={() => toggleCardPayment(card.id)} className={`px-2.5 py-1 text-[11px] rounded-lg font-bold ${isPaid ? 'bg-emerald-600 text-white' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                                {isPaid ? '已繳清' : '未繳款'}
+                          <div key={card.id} className="p-3 rounded-xl bg-slate-800 border border-slate-700 flex justify-between items-center text-xs">
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => toggleCardPayment(card.id)} className={`w-5 h-5 rounded flex items-center justify-center border font-bold ${isPaid ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-600'}`}>
+                                {isPaid && '✓'}
                               </button>
+                              <div>
+                                <div className="font-bold text-slate-100">{card.name}</div>
+                                <div className="text-[10px] text-slate-400">每月 {card.dueDay} 日繳費</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-200">${amount.toLocaleString()}</div>
+                              <div className={`text-[10px] ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>{isPaid ? '已繳款' : '未繳款'}</div>
                             </div>
                           </div>
                         );
@@ -408,27 +461,28 @@
                     </div>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <h3 className="text-sm font-bold text-white">🏠 固定開銷/訂閱扣款狀態 ({selectedMonth})</h3>
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  <div className="bg-slate-800/40 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-white text-sm">🏠 固定開銷 & 訂閱處理狀態</h3>
+                      <span className="text-xs text-indigo-400">未扣 {pendingFixedCount} 項</span>
+                    </div>
+                    <div className="space-y-2">
                       {fixedItems.map(item => {
                         const isPaid = !!fixedPayments[`${item.id}_${selectedMonth}`];
                         return (
-                          <div key={item.id} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-                            <div>
-                              <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                                {item.title}
-                                <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${item.type === 'subscription' ? 'bg-purple-500/20 text-purple-300' : item.type === 'investment' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-rose-500/20 text-rose-300'}`}>
-                                  {item.category}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-slate-400">每月{item.payDay}日處理</div>
-                            </div>
-                            <div className="text-right flex items-center gap-3">
-                              <span className="text-xs font-bold text-white">${item.amount.toLocaleString()}</span>
-                              <button onClick={() => toggleFixedPayment(item.id)} className={`px-2.5 py-1 text-[11px] rounded-lg font-bold ${isPaid ? 'bg-emerald-600 text-white' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                                {isPaid ? '已處理' : '待處理'}
+                          <div key={item.id} className="p-3 rounded-xl bg-slate-800 border border-slate-700 flex justify-between items-center text-xs">
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => toggleFixedPayment(item.id)} className={`w-5 h-5 rounded flex items-center justify-center border font-bold ${isPaid ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-600'}`}>
+                                {isPaid && '✓'}
                               </button>
+                              <div>
+                                <div className="font-bold text-slate-100">{item.title}</div>
+                                <div className="text-[10px] text-slate-400">每月 {item.payDay} 日扣款</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-slate-200">${item.amount.toLocaleString()}</div>
+                              <div className={`text-[10px] ${isPaid ? 'text-emerald-400' : 'text-amber-400'}`}>{isPaid ? '已完成' : '待扣款'}</div>
                             </div>
                           </div>
                         );
@@ -439,39 +493,39 @@
               </div>
             )}
 
-            {/* Tab 2: Cards */}
+            {/* Tab 2: 信用卡帳單 */}
             {activeTab === 'cards' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-sm font-bold text-white">卡片列表 ({cards.length})</h2>
-                  <button onClick={() => { setEditingCard(null); setNewCard({ name: '', closingDay: 15, dueDay: 5, color: 'from-indigo-600 to-blue-800' }); setIsAddCardOpen(true); }} className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">+ 新增卡片</button>
+                  <h2 className="text-base font-bold text-white">信用卡管理</h2>
+                  <button onClick={handleOpenAddCard} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">+ 新增信用卡</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {cards.map(card => {
                     const amount = cardTotals[card.id] || 0;
                     const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
                     return (
-                      <div key={card.id} className="space-y-2">
-                        <div className={`p-5 rounded-2xl bg-gradient-to-br ${card.color} text-white space-y-3 shadow-lg relative`}>
+                      <div key={card.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-4">
+                        <div className={`p-4 rounded-xl bg-gradient-to-br ${card.color} text-white space-y-3`}>
                           <div className="flex justify-between items-start">
-                            <h3 className="text-base font-bold">{card.name}</h3>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isPaid ? 'bg-white/20' : 'bg-amber-400 text-slate-900'}`}>{isPaid ? '已繳清' : '待繳費'}</span>
+                            <span className="font-bold text-base">{card.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isPaid ? 'bg-white/20' : 'bg-amber-400 text-slate-900'}`}>{isPaid ? '已繳清' : '未繳款'}</span>
                           </div>
                           <div>
-                            <div className="text-[10px] opacity-80">當期帳單</div>
+                            <span className="text-[10px] opacity-80">當期帳單金額</span>
                             <div className="text-2xl font-black">${amount.toLocaleString()}</div>
                           </div>
-                          <div className="text-[10px] opacity-80 flex justify-between border-t border-white/10 pt-2">
-                            <span>{card.closingDay}日 結帳</span>
-                            <span>{card.dueDay}日 繳款</span>
+                          <div className="text-[10px] flex justify-between opacity-80">
+                            <span>結帳日: 每月{card.closingDay}日</span>
+                            <span>繳費日: 每月{card.dueDay}日</span>
                           </div>
-                          <button onClick={() => toggleCardPayment(card.id)} className="w-full py-2 bg-black/20 hover:bg-black/30 text-xs rounded-xl font-bold transition">
-                            {isPaid ? '標示為未繳費' : '標示為已繳費'}
-                          </button>
                         </div>
-                        <div className="flex justify-between px-1 text-xs">
-                          <button onClick={() => { setEditingCard(card); setNewCard({ name: card.name, closingDay: card.closingDay, dueDay: card.dueDay, color: card.color }); setIsAddCardOpen(true); }} className="text-indigo-400 hover:underline">✏️ 編輯卡片</button>
-                          <button onClick={() => handleDeleteCard(card.id, card.name)} className="text-rose-400 hover:underline">🗑️ 刪除卡片</button>
+                        <div className="flex justify-between gap-2">
+                          <button onClick={() => toggleCardPayment(card.id)} className="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold">
+                            {isPaid ? '標示未繳' : '標示已繳費'}
+                          </button>
+                          <button onClick={() => handleOpenEditCard(card)} className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded-xl text-xs">✏️</button>
+                          <button onClick={() => { if (cards.length > 1 && confirm('刪除此卡？')) setCards(cards.filter(c => c.id !== card.id)); }} className="px-3 py-1.5 bg-rose-500/20 text-rose-300 rounded-xl text-xs">🗑️</button>
                         </div>
                       </div>
                     );
@@ -480,45 +534,41 @@
               </div>
             )}
 
-            {/* Tab 3: Transactions */}
+            {/* Tab 3: 刷卡明細 (支援編輯) */}
             {activeTab === 'transactions' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-sm font-bold text-white">刷卡消費明細</h2>
-                  <button onClick={() => setIsAddTxOpen(true)} className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">+ 記一筆刷卡</button>
+                  <h2 className="text-base font-bold text-white">刷卡明細</h2>
+                  <button onClick={handleOpenAddTx} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">+ 記一筆刷卡</button>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div className="bg-slate-800/40 border border-slate-800 rounded-2xl overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                    <thead className="bg-slate-800 text-slate-400 border-b border-slate-700">
                       <tr>
-                        <th className="p-3">消費日</th>
-                        <th className="p-3">歸屬帳單</th>
-                        <th className="p-3">項目/分期</th>
-                        <th className="p-3">卡片</th>
+                        <th className="p-3">消費日期</th>
+                        <th className="p-3">帳單期</th>
+                        <th className="p-3">項目名稱</th>
+                        <th className="p-3">付款卡片</th>
                         <th className="p-3 text-right">金額</th>
-                        <th className="p-3 text-center">刪除</th>
+                        <th className="p-3 text-center">操作</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 text-slate-200">
+                    <tbody className="divide-y divide-slate-800">
                       {currentMonthTransactions.length === 0 ? (
-                        <tr><td colSpan={6} className="text-center py-6 text-slate-500">這個月沒有刷卡明細</td></tr>
+                        <tr><td colSpan={6} className="p-6 text-center text-slate-500">當月無刷卡紀錄</td></tr>
                       ) : (
                         currentMonthTransactions.map(t => {
                           const card = cards.find(c => c.id === t.cardId);
                           return (
-                            <tr key={t.id} className="hover:bg-slate-800/40">
-                              <td className="p-3 font-mono text-slate-400">{t.txDate}</td>
-                              <td className="p-3">
-                                <input type="month" value={t.billingCycle} onChange={e => {
-                                  const n = e.target.value;
-                                  setTransactions(transactions.map(item => item.id === t.id ? {...item, billingCycle: n} : item));
-                                }} className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[11px] text-indigo-300" />
-                              </td>
-                              <td className="p-3 font-bold">{t.title}</td>
-                              <td className="p-3">{card?.name || '未知'}</td>
-                              <td className="p-3 text-right font-bold text-white">${t.amount.toLocaleString()}</td>
-                              <td className="p-3 text-center">
-                                <button onClick={() => setTransactions(transactions.filter(item => item.id !== t.id))} className="text-rose-400 hover:text-rose-300">🗑️</button>
+                            <tr key={t.id} className="hover:bg-slate-800/50">
+                              <td className="p-3 text-slate-400 font-mono">{t.txDate}</td>
+                              <td className="p-3 text-indigo-300 font-mono">{t.billingCycle}</td>
+                              <td className="p-3 font-bold text-white">{t.title}</td>
+                              <td className="p-3 text-slate-300">{card?.name || '未知卡片'}</td>
+                              <td className="p-3 text-right font-bold text-white font-mono">${t.amount.toLocaleString()}</td>
+                              <td className="p-3 text-center space-x-2">
+                                <button onClick={() => handleOpenEditTx(t)} className="text-indigo-400 hover:text-indigo-300" title="編輯明細">✏️</button>
+                                <button onClick={() => setTransactions(transactions.filter(x => x.id !== t.id))} className="text-rose-400 hover:text-rose-300" title="刪除明細">🗑️</button>
                               </td>
                             </tr>
                           );
@@ -530,66 +580,50 @@
               </div>
             )}
 
-            {/* Tab 4: Installments */}
+            {/* Tab 4: 分期付款 */}
             {activeTab === 'installments' && (
               <div className="space-y-4">
-                <h2 className="text-sm font-bold text-white">分期付款專屬進度追蹤</h2>
-                {installmentGroups.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500 bg-slate-900 border border-slate-800 rounded-2xl">目前沒有進行中的分期項目</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {installmentGroups.map(group => {
-                      const paidCount = group.terms.filter(t => t.billingCycle <= selectedMonth).length;
-                      const pct = Math.min(100, Math.round((paidCount / group.totalTerms) * 100));
-                      return (
-                        <div key={group.groupId} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-3">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded font-bold">{group.category}</span>
-                              <h3 className="font-bold text-white text-base mt-1">{group.title}</h3>
-                            </div>
-                            <button onClick={() => setTransactions(transactions.filter(t => t.groupId !== group.groupId))} className="text-slate-500 hover:text-rose-400 text-xs">🗑️ 刪除分期</button>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-xs text-slate-400">
-                              <span>進度: {paidCount} / {group.totalTerms} 期</span>
-                              <span className="font-bold text-indigo-400">{pct}%</span>
-                            </div>
-                            <div className="w-full bg-slate-800 rounded-full h-2">
-                              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full" style={{ width: `${pct}%` }}></div>
-                            </div>
-                          </div>
-                          <div className="flex justify-between text-xs pt-1 border-t border-slate-800">
-                            <span className="text-slate-400">總金額: ${group.totalAmount.toLocaleString()}</span>
-                            <span className="font-bold text-white">每期 ${group.terms[0]?.amount.toLocaleString()}</span>
-                          </div>
+                <h2 className="text-base font-bold text-white">分期付款專區</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {transactions.filter(t => t.isInstallment && t.installmentInfo?.currentTerm === 1).map(t => (
+                    <div key={t.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-white">{t.title.replace(/\s\(\d+\/\d+期\)/, '')}</h3>
+                          <span className="text-[10px] text-slate-400">總金額: ${t.totalAmount?.toLocaleString()}</span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        <span className="text-xs text-indigo-400 font-bold">共 {t.installmentInfo?.totalTerms} 期</span>
+                      </div>
+                      <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div className="bg-indigo-500 h-full w-1/3"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Tab 5: Fixed & Subscriptions */}
+            {/* Tab 5: 固定開銷與訂閱 */}
             {activeTab === 'fixed' && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-sm font-bold text-white">固定開銷 / 信用卡訂閱 / 投資</h2>
-                  <button onClick={() => setIsAddFixedOpen(true)} className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-bold">+ 新增項目</button>
+                  <h2 className="text-base font-bold text-white">固定開銷與訂閱管理</h2>
+                  <button onClick={() => setIsAddFixedOpen(true)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold">+ 新增固定開銷</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {fixedItems.map(item => (
-                    <div key={item.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl space-y-3">
+                    <div key={item.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-3">
                       <div className="flex justify-between items-start">
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${item.type === 'subscription' ? 'bg-purple-500/20 text-purple-300' : item.type === 'investment' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-rose-500/20 text-rose-300'}`}>{item.category}</span>
-                        <button onClick={() => setFixedItems(fixedItems.filter(f => f.id !== item.id))} className="text-slate-500 hover:text-rose-400 text-xs">🗑️</button>
+                        <div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded ${item.type === 'subscription' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-700 text-slate-300'}`}>
+                            {item.category}
+                          </span>
+                          <h3 className="font-bold text-white mt-1">{item.title}</h3>
+                        </div>
+                        <button onClick={() => setFixedItems(fixedItems.filter(f => f.id !== item.id))} className="text-rose-400 text-xs">🗑️</button>
                       </div>
-                      <h3 className="font-bold text-white text-base">{item.title}</h3>
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-slate-400">每月固定 (扣款日 {item.payDay}日)</span>
-                        <span className="text-xl font-black text-white">${item.amount.toLocaleString()}</span>
-                      </div>
+                      <div className="text-xl font-bold text-white">${item.amount.toLocaleString()}</div>
+                      <div className="text-[10px] text-slate-400">每月 {item.payDay} 日扣款/處理</div>
                     </div>
                   ))}
                 </div>
@@ -597,24 +631,65 @@
             )}
           </main>
 
+          {/* Modal: Add/Edit Transaction */}
+          {isAddTxOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
+                <h3 className="text-base font-bold text-white">{editingTx ? '編輯刷卡明細' : '記一筆刷卡消費'}</h3>
+                <form onSubmit={handleSaveTx} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-slate-400 mb-1">消費名稱</label>
+                    <input type="text" required placeholder="例如：全家超商" value={newTx.title || ''} onChange={e => setNewTx({...newTx, title: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-slate-400 mb-1">金額</label>
+                      <input type="number" required placeholder="0" value={newTx.amount || ''} onChange={e => setNewTx({...newTx, amount: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">付款卡片</label>
+                      <select value={newTx.cardId || (cards[0] && cards[0].id) || ''} onChange={e => setNewTx({...newTx, cardId: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                        {cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-slate-400 mb-1">消費日期</label>
+                      <input type="date" value={newTx.txDate || ''} onChange={e => setNewTx({...newTx, txDate: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">帳單歸屬月份</label>
+                      <input type="month" value={newTx.billingCycle || ''} onChange={e => setNewTx({...newTx, billingCycle: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">{editingTx ? '儲存修改' : '儲存明細'}</button>
+                    <button type="button" onClick={() => setIsAddTxOpen(false)} className="px-4 py-2.5 bg-slate-700 text-slate-300 rounded-xl">取消</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* Modal: Add/Edit Card */}
           {isAddCardOpen && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
               <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
                 <h3 className="text-base font-bold text-white">{editingCard ? '編輯信用卡' : '新增信用卡'}</h3>
-                <form onSubmit={handleAddCard} className="space-y-3 text-xs">
+                <form onSubmit={handleSaveCard} className="space-y-3 text-xs">
                   <div>
                     <label className="block text-slate-400 mb-1">卡片名稱</label>
-                    <input type="text" required placeholder="例如：台新 FlyGo" value={newCard.name} onChange={e => setNewCard({...newCard, name: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    <input type="text" required placeholder="例如：台新 FlyGo" value={newCard.name || ''} onChange={e => setNewCard({...newCard, name: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-slate-400 mb-1">每月結帳日 (1-31)</label>
-                      <input type="number" min="1" max="31" value={newCard.closingDay} onChange={e => setNewCard({...newCard, closingDay: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <label className="block text-slate-400 mb-1">結帳日 (1-31)</label>
+                      <input type="number" min="1" max="31" value={newCard.closingDay || 15} onChange={e => setNewCard({...newCard, closingDay: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1">每月繳費日 (1-31)</label>
-                      <input type="number" min="1" max="31" value={newCard.dueDay} onChange={e => setNewCard({...newCard, dueDay: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <label className="block text-slate-400 mb-1">繳費日 (1-31)</label>
+                      <input type="number" min="1" max="31" value={newCard.dueDay || 5} onChange={e => setNewCard({...newCard, dueDay: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                     </div>
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -626,100 +701,33 @@
             </div>
           )}
 
-          {/* Modal: Add Transaction */}
-          {isAddTxOpen && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
-                <h3 className="text-base font-bold text-white">記一筆刷卡消費</h3>
-                <form onSubmit={handleAddTx} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-slate-400 mb-1">消費名稱</label>
-                    <input type="text" required placeholder="例如：全家超商" value={newTx.title} onChange={e => setNewTx({...newTx, title: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-slate-400 mb-1">金額</label>
-                      <input type="number" required placeholder="0" value={newTx.amount} onChange={e => setNewTx({...newTx, amount: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">付款卡片</label>
-                      <select value={newTx.cardId} onChange={e => setNewTx({...newTx, cardId: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
-                        {cards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-slate-400 mb-1">消費日期</label>
-                      <input type="date" value={newTx.txDate} onChange={e => setNewTx({...newTx, txDate: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">帳單歸屬月份</label>
-                      <input type="month" value={newTx.billingCycle} onChange={e => setNewTx({...newTx, billingCycle: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                  </div>
-                  {/* 分期選項 */}
-                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-700/60 space-y-2">
-                    <label className="flex items-center gap-2 text-white font-bold cursor-pointer">
-                      <input type="checkbox" checked={newTx.isInstallment} onChange={e => setNewTx({...newTx, isInstallment: e.target.checked})} className="rounded text-indigo-600" />
-                      開啟信用卡分期付款
-                    </label>
-                    {newTx.isInstallment && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="text-slate-400">選擇分期期數：</span>
-                        <select value={newTx.totalTerms} onChange={e => setNewTx({...newTx, totalTerms: Number(e.target.value)})} className="bg-slate-900 border border-slate-700 rounded p-1 text-white">
-                          {[3, 6, 12, 18, 24].map(n => <option key={n} value={n}>分 {n} 期</option>)}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">儲存明細</button>
-                    <button type="button" onClick={() => setIsAddTxOpen(false)} className="px-4 py-2.5 bg-slate-700 text-slate-300 rounded-xl">取消</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* Modal: Add Fixed Item */}
+          {/* Modal: Add Fixed */}
           {isAddFixedOpen && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
               <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
                 <h3 className="text-base font-bold text-white">新增固定開銷 / 訂閱 / 投資</h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newFixed.title || !newFixed.amount) return;
-                  setFixedItems([...fixedItems, { ...newFixed, id: 'f_' + Date.now(), amount: Number(newFixed.amount) }]);
-                  setIsAddFixedOpen(false);
-                }} className="space-y-3 text-xs">
+                <form onSubmit={handleSaveFixed} className="space-y-3 text-xs">
                   <div>
                     <label className="block text-slate-400 mb-1">項目名稱</label>
-                    <input type="text" required placeholder="例如：ChatGPT Plus" value={newFixed.title} onChange={e => setNewFixed({...newFixed, title: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    <input type="text" required placeholder="如：ChatGPT Plus、房租" value={newFixed.title || ''} onChange={e => setNewFixed({...newFixed, title: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-slate-400 mb-1">金額</label>
-                      <input type="number" required placeholder="0" value={newFixed.amount} onChange={e => setNewFixed({...newFixed, amount: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <input type="number" required placeholder="0" value={newFixed.amount || ''} onChange={e => setNewFixed({...newFixed, amount: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1">扣款日 (1-31)</label>
-                      <input type="number" min="1" max="31" value={newFixed.payDay} onChange={e => setNewFixed({...newFixed, payDay: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <label className="block text-slate-400 mb-1">每月扣款日</label>
+                      <input type="number" min="1" max="31" value={newFixed.payDay || 5} onChange={e => setNewFixed({...newFixed, payDay: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-slate-400 mb-1">類型</label>
-                      <select value={newFixed.type} onChange={e => setNewFixed({...newFixed, type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="expense">日常固定開銷 (房租/孝親)</option>
-                        <option value="subscription">信用卡定期訂閱 (AI/影音)</option>
-                        <option value="investment">股票 / ETF 投資</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">分類標籤</label>
-                      <input type="text" placeholder="例如：串流/AI訂閱" value={newFixed.category} onChange={e => setNewFixed({...newFixed, category: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1">類型</label>
+                    <select value={newFixed.type || 'subscription'} onChange={e => setNewFixed({...newFixed, type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                      <option value="subscription">信用卡定期訂閱 (AI/影音/健身房)</option>
+                      <option value="expense">日常固定開銷 (孝親/房租/保險)</option>
+                      <option value="investment">股票 / ETF 定期定額</option>
+                    </select>
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">新增項目</button>
@@ -729,40 +737,11 @@
               </div>
             </div>
           )}
-
-          {/* Modal: Set PIN */}
-          {isSettingPin && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 space-y-4">
-                <h3 className="text-base font-bold text-white">設定 PIN 碼鎖</h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  if (newPin.length < 4) return alert('請設定至少 4 位數 PIN 碼');
-                  localStorage.setItem('v5_pin', newPin);
-                  setPinCode(newPin);
-                  setIsSettingPin(false);
-                  alert('密碼鎖啟用成功！');
-                }} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block text-slate-400 mb-1">自訂 4 位數 PIN 碼</label>
-                    <input type="password" required maxLength={8} placeholder="例如：1234" value={newPin} onChange={e => setNewPin(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-center text-lg tracking-widest" />
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold">儲存密碼鎖</button>
-                    {pinCode && (
-                      <button type="button" onClick={() => { localStorage.removeItem('v5_pin'); setPinCode(''); setIsSettingPin(false); }} className="px-3 py-2.5 bg-rose-600 text-white rounded-xl font-bold">移除密碼</button>
-                    )}
-                    <button type="button" onClick={() => setIsSettingPin(false)} className="px-3 py-2.5 bg-slate-700 text-slate-300 rounded-xl">取消</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 </body>
 </html>
