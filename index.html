@@ -271,13 +271,19 @@
         if (!newFixed.title || !newFixed.amount) return;
 
         const amountNum = Number(newFixed.amount);
+        
+        // 根據選擇的 type 自動給予適當的分類顯示名稱
+        let computedCategory = newFixed.category;
+        if (newFixed.type === 'subscription') computedCategory = '信用卡訂閱';
+        else if (newFixed.type === 'expense') computedCategory = '固定開銷';
+        else if (newFixed.type === 'investment') computedCategory = '股票投資';
 
         if (editingFixed) {
           setFixedItems(prev => prev.map(f => f.id === editingFixed.id ? {
             ...f,
             title: newFixed.title,
             amount: amountNum,
-            category: newFixed.category,
+            category: computedCategory,
             type: newFixed.type,
             payDay: Number(newFixed.payDay),
             cardId: newFixed.type === 'subscription' ? newFixed.cardId : undefined
@@ -287,7 +293,7 @@
             id: 'f_' + Date.now(),
             title: newFixed.title,
             amount: amountNum,
-            category: newFixed.category,
+            category: computedCategory,
             type: newFixed.type,
             payDay: Number(newFixed.payDay),
             cardId: newFixed.type === 'subscription' ? newFixed.cardId : undefined
@@ -830,7 +836,7 @@
                 <form onSubmit={handleSaveFixed} className="space-y-3 text-xs">
                   <div>
                     <label className="text-slate-300 block mb-1">項目名稱</label>
-                    <input type="text" required value={newFixed.title} onChange={e => setNewFixed({ ...newFixed, title: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" />
+                    <input type="text" required value={newFixed.title} onChange={e => setNewFixed({ ...newFixed, title: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white" placeholder="如: 房租、孝親費、Spotify" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -844,9 +850,19 @@
                   </div>
                   <div>
                     <label className="text-slate-300 block mb-1">類型</label>
-                    <select value={newFixed.type} onChange={e => setNewFixed({ ...newFixed, type: e.target.value })} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-white">
-                      <option value="subscription">信用卡定期訂閱 (AI/影音/健身房)</option>
+                    <select 
+                      value={newFixed.type} 
+                      onChange={e => {
+                        const newType = e.target.value;
+                        let defaultCat = '固定開銷';
+                        if (newType === 'subscription') defaultCat = '信用卡訂閱';
+                        else if (newType === 'investment') defaultCat = '股票投資';
+                        setNewFixed({ ...newFixed, type: newType, category: defaultCat });
+                      }} 
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-white"
+                    >
                       <option value="expense">一般固定開銷 (房租/孝親/保險)</option>
+                      <option value="subscription">信用卡定期訂閱 (AI/影音/健身房)</option>
                       <option value="investment">股票/ETF投資</option>
                     </select>
                   </div>
