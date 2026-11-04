@@ -89,6 +89,9 @@
       const [selectedMonth, setSelectedMonth] = useState('2026-11');
       const [activeTab, setActiveTab] = useState('dashboard');
 
+      // 展開明細的卡片 ID 紀錄
+      const [expandedCardId, setExpandedCardId] = useState(null);
+
       // PIN 碼與鎖定狀態
       const [pinCode, setPinCode] = useState(() => localStorage.getItem('cc_tracker_pin') || '');
       const [isLocked, setIsLocked] = useState(() => !!localStorage.getItem('cc_tracker_pin'));
@@ -312,7 +315,7 @@
         const map = {};
         cards.forEach(c => { map[c.id] = 0; });
 
-        // 1. 刷卡明細
+        // 1. 刷卡明細 (包含一般消費與分期付款當期金額)
         transactions.filter(t => t.billingCycle === selectedMonth).forEach(t => {
           if (map[t.cardId] !== undefined) {
             map[t.cardId] += Number(t.amount || 0);
@@ -547,6 +550,11 @@
                   {sortedCards.map(card => {
                     const amount = cardTotals[card.id] || 0;
                     const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
+                    const isExpanded = expandedCardId === card.id;
+
+                    // 篩選該卡片當月明細
+                    const cardTxs = transactions.filter(t => t.cardId === card.id && t.billingCycle === selectedMonth);
+                    const cardSubscriptions = fixedItems.filter(f => f.type === 'subscription' && f.cardId === card.id);
 
                     return (
                       <div key={card.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-3">
@@ -564,6 +572,49 @@
                           <span className="text-xs text-slate-400">當期應繳金額</span>
                           <span className="text-xl font-bold text-white">${amount.toLocaleString()}</span>
                         </div>
+
+                        {/* 明細展開按鈕 */}
+                        <button
+                          onClick={() => setExpandedCardId(isExpanded ? null : card.id)}
+                          className="w-full py-1.5 bg-slate-900/80 hover:bg-slate-900 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition"
+                        >
+                          <span>{isExpanded ? '▲ 收起明細' : '📄 查看帳單明細'}</span>
+                          <span className="text-[10px] text-slate-400">({cardTxs.length + cardSubscriptions.length} 筆)</span>
+                        </button>
+
+                        {/* 展開後的明細清單 */}
+                        {isExpanded && (
+                          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700/80 space-y-2 text-xs">
+                            <div className="text-[11px] text-indigo-300 font-bold border-b border-slate-700/60 pb-1 flex justify-between">
+                              <span>當月刷卡與訂閱項目</span>
+                              <span>金額</span>
+                            </div>
+                            {cardTxs.length === 0 && cardSubscriptions.length === 0 ? (
+                              <p className="text-slate-500 text-center py-1 text-[11px]">本月此卡無消費明細</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                                {cardSubscriptions.map(s => (
+                                  <div key={s.id} className="flex justify-between items-center text-slate-300">
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded">訂閱</span>
+                                      {s.title}
+                                    </span>
+                                    <span className="font-mono font-bold text-white">${Number(s.amount).toLocaleString()}</span>
+                                  </div>
+                                ))}
+                                {cardTxs.map(t => (
+                                  <div key={t.id} className="flex justify-between items-center text-slate-300">
+                                    <span className="truncate max-w-[170px] flex items-center gap-1">
+                                      {t.isInstallment && <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded">分期</span>}
+                                      {t.title}
+                                    </span>
+                                    <span className="font-mono font-bold text-white">${Number(t.amount).toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         <div className="flex gap-2 pt-1">
                           <button
