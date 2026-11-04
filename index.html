@@ -302,6 +302,11 @@
         setIsAddFixedOpen(false);
       };
 
+      // 依「結帳日」小到大自動排序卡片 (不改變原本儲存資料結構)
+      const sortedCards = useMemo(() => {
+        return [...cards].sort((a, b) => (Number(a.closingDay) || 0) - (Number(b.closingDay) || 0));
+      }, [cards]);
+
       // 計算當月金額
       const cardTotals = useMemo(() => {
         const map = {};
@@ -504,7 +509,7 @@
                     <button onClick={handleOpenAddCard} className="text-xs text-indigo-400">+ 新增卡片</button>
                   </h3>
                   <div className="space-y-2">
-                    {cards.map(card => {
+                    {sortedCards.map(card => {
                       const amount = cardTotals[card.id] || 0;
                       const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
                       return (
@@ -539,7 +544,7 @@
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {cards.map(card => {
+                  {sortedCards.map(card => {
                     const amount = cardTotals[card.id] || 0;
                     const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
 
@@ -599,7 +604,10 @@
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-700 text-slate-200">
-                        {transactions.filter(t => t.billingCycle === selectedMonth).map(t => {
+                        {transactions
+                          .filter(t => t.billingCycle === selectedMonth)
+                          .sort((a, b) => new Date(b.txDate || 0) - new Date(a.txDate || 0))
+                          .map(t => {
                           const card = cards.find(c => c.id === t.cardId);
                           return (
                             <tr key={t.id}>
