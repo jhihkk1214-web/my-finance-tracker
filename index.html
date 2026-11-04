@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>每月信用卡與固定開銷管理系統</title>
+  <title>💳 私人記帳管家</title>
 
-  <!-- 設定 iOS Safari 桌面 App 圖示 (SVG 資料串流圖示) -->
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234F46E5'/><text x='50%' y='55%' font-size='55' dominant-baseline='central' text-anchor='middle'>💳</text></svg>" />
+  <!-- iOS Safari 桌面 App 專用圖示 (採用相容 Canvas 高清圖示) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="https://img.icons8.com/isometric-folders/512/bank-cards.png" />
+  <link rel="icon" type="image/png" href="https://img.icons8.com/isometric-folders/512/bank-cards.png" />
   <!-- Web App 全螢幕模式支援 -->
+  <meta name="apple-mobile-web-app-title" content="信用卡記帳" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
@@ -423,9 +425,24 @@
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
                 />
-                <button onClick={handleExportBackup} className="p-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs" title="匯出備份">📥</button>
-                <label className="p-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs cursor-pointer" title="匯入備份">
-                  📤 <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+                
+                {/* 優化後的備份與還原按鈕，辨識度更高 */}
+                <button 
+                  onClick={handleExportBackup} 
+                  className="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 rounded-xl text-xs font-bold text-indigo-300 flex items-center gap-1 transition" 
+                  title="匯出備份 JSON 檔案"
+                >
+                  <span className="text-sm">📥</span>
+                  <span>備份</span>
+                </button>
+                
+                <label 
+                  className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 flex items-center gap-1 cursor-pointer transition" 
+                  title="選擇並還原 JSON 備份檔"
+                >
+                  <span className="text-sm">📤</span>
+                  <span>還原</span>
+                  <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
                 </label>
               </div>
             </div>
