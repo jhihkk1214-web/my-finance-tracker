@@ -506,33 +506,72 @@
                   </div>
                 </div>
 
-                <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 space-y-3">
-                  <h3 className="font-bold text-sm text-white flex items-center justify-between">
-                    <span>💳 當月信用卡狀態 ({selectedMonth})</span>
-                    <button onClick={handleOpenAddCard} className="text-xs text-indigo-400">+ 新增卡片</button>
-                  </h3>
-                  <div className="space-y-2">
-                    {sortedCards.map(card => {
-                      const amount = cardTotals[card.id] || 0;
-                      const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
-                      return (
-                        <div key={card.id} className="bg-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              onClick={() => toggleCardPayment(card.id)}
-                              className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600'}`}
-                            >
-                              {isPaid ? '✓' : ''}
-                            </button>
-                            <span className="font-bold text-white">{card.name}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 1. 信用卡繳費狀態 */}
+                  <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 space-y-3">
+                    <h3 className="font-bold text-sm text-white flex items-center justify-between">
+                      <span>💳 當月信用卡繳費 ({selectedMonth})</span>
+                      <button onClick={handleOpenAddCard} className="text-xs text-indigo-400">+ 新增卡片</button>
+                    </h3>
+                    <div className="space-y-2">
+                      {sortedCards.map(card => {
+                        const amount = cardTotals[card.id] || 0;
+                        const isPaid = !!cardPayments[`${card.id}_${selectedMonth}`];
+                        return (
+                          <div key={card.id} className="bg-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                onClick={() => toggleCardPayment(card.id)}
+                                className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600'}`}
+                              >
+                                {isPaid ? '✓' : ''}
+                              </button>
+                              <span className="font-bold text-white">{card.name}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-white block">${amount.toLocaleString()}</span>
+                              <span className={isPaid ? 'text-emerald-400' : 'text-amber-400'}>{isPaid ? '已繳費' : '待繳費'}</span>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <span className="font-bold text-white block">${amount.toLocaleString()}</span>
-                            <span className={isPaid ? 'text-emerald-400' : 'text-amber-400'}>{isPaid ? '已繳費' : '待繳費'}</span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. 一般固定開銷與投資狀態 */}
+                  <div className="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-4 space-y-3">
+                    <h3 className="font-bold text-sm text-white flex items-center justify-between">
+                      <span>🏠 一般固定開銷與投資扣款</span>
+                      <button onClick={handleOpenAddFixed} className="text-xs text-indigo-400">+ 新增項目</button>
+                    </h3>
+                    <div className="space-y-2">
+                      {fixedItems.map(item => {
+                        const isPaid = !!fixedPayments[`${item.id}_${selectedMonth}`];
+                        const card = cards.find(c => c.id === item.cardId);
+                        return (
+                          <div key={item.id} className="bg-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                onClick={() => toggleFixedPayment(item.id)}
+                                className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${isPaid ? 'bg-emerald-500 text-white' : 'border border-slate-600'}`}
+                              >
+                                {isPaid ? '✓' : ''}
+                              </button>
+                              <div>
+                                <span className="font-bold text-white block">{item.title}</span>
+                                <span className="text-[10px] text-slate-400">
+                                  {item.type === 'subscription' && card ? `💳 ${card.name}` : `每月 ${item.payDay} 日扣款`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-white block">${Number(item.amount).toLocaleString()}</span>
+                              <span className={isPaid ? 'text-emerald-400' : 'text-amber-400'}>{isPaid ? '已處理' : '待處理'}</span>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
