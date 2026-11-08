@@ -625,7 +625,7 @@
                         {isExpanded && (
                           <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700/80 space-y-2 text-xs">
                             <div className="text-[11px] text-indigo-300 font-bold border-b border-slate-700/60 pb-1 flex justify-between">
-                              <span>當月刷卡與訂閱項目</span>
+                              <span>當月刷卡與訂閱項目 (最新在最上)</span>
                               <span>金額</span>
                             </div>
                             {cardTxs.length === 0 && cardSubscriptions.length === 0 ? (
@@ -641,15 +641,17 @@
                                     <span className="font-mono font-bold text-white">${Number(s.amount).toLocaleString()}</span>
                                   </div>
                                 ))}
-                                {cardTxs.map(t => (
-                                  <div key={t.id} className="flex justify-between items-center text-slate-300">
-                                    <span className="truncate max-w-[170px] flex items-center gap-1">
-                                      {t.isInstallment && <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded">分期</span>}
-                                      {t.title}
-                                    </span>
-                                    <span className="font-mono font-bold text-white">${Number(t.amount).toLocaleString()}</span>
-                                  </div>
-                                ))}
+                                {[...cardTxs]
+                                  .sort((a, b) => new Date(b.txDate || 0) - new Date(a.txDate || 0))
+                                  .map(t => (
+                                    <div key={t.id} className="flex justify-between items-center text-slate-300">
+                                      <span className="truncate max-w-[170px] flex items-center gap-1">
+                                        {t.isInstallment && <span className="text-[9px] bg-purple-500/20 text-purple-300 px-1 rounded">分期</span>}
+                                        {t.title}
+                                      </span>
+                                      <span className="font-mono font-bold text-white">${Number(t.amount).toLocaleString()}</span>
+                                    </div>
+                                  ))}
                               </div>
                             )}
                           </div>
